@@ -109,6 +109,16 @@ describe('createDeadlines', () => {
     expect(f.calls).toHaveLength(2);
   });
 
+  it('skips the cache when asked for fresh data', async () => {
+    const f = fakeFetch(feed);
+    const get = createDeadlines({ url: 'https://x/feed.ics', fetch: f.fn, now: () => NOW });
+    await get();
+    await get({ fresh: true });
+    expect(f.calls).toHaveLength(2);
+    await get();
+    expect(f.calls).toHaveLength(2);
+  });
+
   it('reports fetch failures without throwing', async () => {
     const get = createDeadlines({ url: 'https://x/feed.ics', fetch: fakeFetch('', false).fn, now: () => NOW });
     expect(await get()).toEqual({ configured: true, deadlines: [], error: 'Canvas feed returned HTTP 500' });

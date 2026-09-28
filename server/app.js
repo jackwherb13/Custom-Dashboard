@@ -36,7 +36,7 @@ export function createApp({
   };
 
   app.get('/api/items', (req, res) => res.json(getItems()));
-  app.get('/api/deadlines', async (req, res) => res.json(await getDeadlines()));
+  app.get('/api/deadlines', async (req, res) => res.json(await getDeadlines({ fresh: req.query.fresh === '1' })));
 
   // Clients name things by id; every path/command comes from the vault or session files, never the request.
   app.post('/api/launch', (req, res) => {

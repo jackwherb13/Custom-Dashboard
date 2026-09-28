@@ -43,7 +43,7 @@ The link contains a secret token, so `.env` is gitignored. The feed has no submi
 
 - `server/vault.js` finds notes with a `dashboard:` block.
 - `server/sessions.js` reads `~/.claude/projects/*/*.jsonl` for sessions whose cwd is inside `path` (subfolders included). This file format is undocumented by Anthropic; if a Claude Code update breaks the session list, this is the file to fix.
-- `server/canvas.js` fetches the Canvas calendar feed (cached 15 min) and returns the next 30 days.
+- `server/canvas.js` fetches the Canvas calendar feed (cached 15 min; the Refresh button skips the cache) and returns the next 30 days.
 - `server/launch.js` opens Windows Terminal (`claude --resume <id>`), Explorer, or SSH.
 
 ## Security

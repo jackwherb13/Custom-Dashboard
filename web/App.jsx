@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './icons.jsx';
 import WeekCard from './WeekCard.jsx';
 import { AssignmentsPage, CanvasNotice, DueList } from './Deadlines.jsx';
@@ -141,11 +141,24 @@ export default function App() {
     setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 3000);
   };
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))));
-  const load = () => {
-    getJson('/api/items').then(setItems, (e) => notify(e.message, true));
-    getJson('/api/deadlines').then(setCanvas, (e) => setCanvas({ configured: true, deadlines: [], error: e.message }));
+  const lastLoad = useRef(0);
+  const load = (fresh = false) => {
+    lastLoad.current = Date.now();
+    return Promise.all([
+      getJson('/api/items').then(setItems, (e) => notify(e.message, true)),
+      getJson(`/api/deadlines${fresh ? '?fresh=1' : ''}`)
+        .then(setCanvas, (e) => setCanvas({ configured: true, deadlines: [], error: e.message })),
+    ]);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Coming back to the tab reloads, so a tab left open all day doesn't go stale.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastLoad.current > 60000) load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const act = (body, message) => {
     notify(message);
@@ -173,7 +186,7 @@ export default function App() {
             </a>
           ))}
         </div>
-        <button className="quiet" onClick={() => { load(); notify('Refreshed'); }} title="Reload notes, sessions and Canvas">
+        <button className="quiet" onClick={() => { notify('Checking Canvas…'); load(true).then(() => notify('Up to date')); }} title="Reload notes, sessions and Canvas">
           <Icon name="refresh" /> Refresh
         </button>
       </nav>

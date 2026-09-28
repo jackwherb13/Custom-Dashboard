@@ -60,6 +60,17 @@ describe('GET /api/deadlines', () => {
     expect(res.body).toEqual({ configured: true, deadlines });
   });
 
+  it('passes ?fresh=1 through to the deadlines source', async () => {
+    const seen = [];
+    const withCanvas = createApp({
+      vaultDir, projectsDir, run: () => {},
+      getDeadlines: async (opts) => { seen.push(opts); return { configured: true, deadlines: [] }; },
+    });
+    await request(withCanvas).get('/api/deadlines').expect(200);
+    await request(withCanvas).get('/api/deadlines?fresh=1').expect(200);
+    expect(seen).toEqual([{ fresh: false }, { fresh: true }]);
+  });
+
   it('is unconfigured by default', async () => {
     const res = await request(app).get('/api/deadlines').expect(200);
     expect(res.body).toEqual({ configured: false, deadlines: [] });

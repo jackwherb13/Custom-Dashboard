@@ -61,10 +61,11 @@ export function parseIcs(text) {
 
 export function createDeadlines({ url, fetch = globalThis.fetch, now = () => new Date() }) {
   let cache = null;
-  return async function getDeadlines() {
+  // `fresh` skips the cache (the Refresh button), so a just-posted assignment shows up right away.
+  return async function getDeadlines({ fresh = false } = {}) {
     if (!url) return { configured: false, deadlines: [] };
     const t = now().getTime();
-    if (!cache || t - cache.at > TTL) {
+    if (fresh || !cache || t - cache.at > TTL) {
       try {
         const res = await fetch(url);
         if (!res.ok) return { configured: true, deadlines: [], error: `Canvas feed returned HTTP ${res.status}` };

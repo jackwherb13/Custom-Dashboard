@@ -50,3 +50,26 @@ export const courseCode = (course) => course?.match(/^([A-Z]{2,4})[\s-]?(\d{3})/
 
 // Classes first, then everything else alphabetically.
 export const groupOrder = (a, b) => (a === 'Classes' ? -1 : b === 'Classes' ? 1 : a.localeCompare(b));
+
+// Monday to Sunday of the week `offset` weeks from now.
+export function weekDays(offset = 0, now = new Date()) {
+  const monday = startOfDay(now);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + offset * 7);
+  return Array.from({ length: 7 }, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
+}
+
+export function nextUp(deadlines, done) {
+  return deadlines
+    .filter((d) => !done.has(d.id))
+    .sort((a, b) => a.due.localeCompare(b.due))[0] ?? null;
+}
+
+// Projects (not classes), most recently worked on first; finished ones last.
+export function projectsByActivity(items) {
+  const last = (i) => i.sessions[0]?.updated ?? '';
+  return items
+    .filter((i) => i.group !== 'Classes')
+    .sort((a, b) => (a.status === 'done') - (b.status === 'done')
+      || last(b).localeCompare(last(a))
+      || a.title.localeCompare(b.title));
+}

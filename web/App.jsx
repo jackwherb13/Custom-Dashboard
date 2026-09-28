@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Icon } from './icons.jsx';
-import Timeline from './Timeline.jsx';
+import WeekCard from './WeekCard.jsx';
 import { AssignmentsPage, CanvasNotice, DueList } from './Deadlines.jsx';
 import { ProjectsPage } from './Projects.jsx';
-import { SessionList } from './Sessions.jsx';
-import { sameDay, weekBucket } from './lib.js';
+import { courseCode, dueLabel, nextUp, projectsByActivity, timeAgo, weekBucket } from './lib.js';
 
 async function launch(body) {
   const res = await fetch('/api/launch', {
@@ -46,18 +45,63 @@ function useHash() {
   return PAGES.some((p) => p.hash === hash) ? hash : '#/';
 }
 
-function Overview({ items, canvas, sessions, done, toggle, act }) {
-  const [day, setDay] = useState(null);
+function Summary({ canvas, done }) {
+  if (!canvas.configured || canvas.error) return null;
+  const open = canvas.deadlines.filter((d) => !done.has(d.id) && weekBucket(d.due) === 'This week').length;
+  const next = nextUp(canvas.deadlines, done);
+  return (
+    <p className="summary">
+      <strong>{open === 0 ? 'Nothing left due this week.' : `${open} thing${open === 1 ? '' : 's'} due this week.`}</strong>
+      {next && ` Next up is ${next.title}${courseCode(next.course) ? ` for ${courseCode(next.course)}` : ''}, ${dueLabel(next.due).replace(/^\w/, (c) => c.toLowerCase())}.`}
+    </p>
+  );
+}
+
+function ProjectList({ items, act }) {
+  return (
+    <ul className="project-list">
+      {items.map((item) => {
+        const last = item.sessions[0];
+        return (
+          <li key={item.id} className={item.status === 'done' ? 'finished' : ''}>
+            <div className="project-text">
+              <span className="project-name">{item.title}</span>
+              <span className="project-meta">
+                {last ? `${timeAgo(last.updated)}: ${last.title ?? last.firstPrompt}` : 'No sessions yet'}
+              </span>
+            </div>
+            <div className="project-actions">
+              {last && (
+                <button onClick={() => act({ action: 'resume', itemId: item.id, sessionId: last.id }, `Resuming “${last.title ?? last.firstPrompt}”`)}>
+                  <Icon name="play" size={11} /> Resume
+                </button>
+              )}
+              {item.path && (
+                <button className="accent" onClick={() => act({ action: 'new', itemId: item.id }, `Starting Claude in ${item.title}`)}>
+                  New session
+                </button>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Overview({ items, canvas, done, toggle, act }) {
   const now = new Date();
   const thisWeek = canvas.deadlines.filter((d) => weekBucket(d.due) === 'This week');
-  const recent = (day ? sessions.filter(({ s }) => sameDay(new Date(s.updated), day)) : sessions).slice(0, 6);
+  const projects = projectsByActivity(items).slice(0, 6);
   return (
     <>
-      <header className="page-head">
-        <h1>{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h1>
-      </header>
-
-      <Timeline sessions={sessions} deadlines={canvas.deadlines} done={done} selected={day} onSelect={setDay} />
+      <div className="overview-top">
+        <div>
+          <h1>{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h1>
+          <Summary canvas={canvas} done={done} />
+        </div>
+        {canvas.configured && !canvas.error && <WeekCard deadlines={canvas.deadlines} done={done} />}
+      </div>
 
       <div className="columns">
         <section>
@@ -73,14 +117,12 @@ function Overview({ items, canvas, sessions, done, toggle, act }) {
 
         <section>
           <div className="section-head">
-            <h2>{day ? `Sessions on ${day.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}` : 'Recent sessions'}</h2>
-            {day
-              ? <button className="quiet" onClick={() => setDay(null)}>Show all</button>
-              : <a href="#/projects" className="more">All projects</a>}
+            <h2>Projects</h2>
+            <a href="#/projects" className="more">All classes and projects</a>
           </div>
-          {recent.length
-            ? <SessionList entries={recent} act={act} />
-            : <p className="empty">{items.length ? `No Claude sessions ${day ? 'that day' : 'yet'}.` : 'Add a dashboard: block to a vault note to get started.'}</p>}
+          {projects.length
+            ? <ProjectList items={projects} act={act} />
+            : <p className="empty">Add a <code>dashboard:</code> block to a project note in your vault to see it here.</p>}
         </section>
       </div>
     </>
@@ -118,9 +160,6 @@ export default function App() {
 
   if (!items || !canvas) return <div className="loading">Loading…</div>;
 
-  const sessions = items
-    .flatMap((item) => item.sessions.map((s) => ({ s, item })))
-    .sort((a, b) => b.s.updated.localeCompare(a.s.updated));
   const openThisWeek = canvas.deadlines.filter((d) => !done.has(d.id) && weekBucket(d.due) === 'This week').length;
 
   return (
@@ -139,7 +178,7 @@ export default function App() {
         </button>
       </nav>
 
-      {hash === '#/' && <Overview items={items} canvas={canvas} sessions={sessions} done={done} toggle={toggle} act={act} />}
+      {hash === '#/' && <Overview items={items} canvas={canvas} done={done} toggle={toggle} act={act} />}
       {hash === '#/assignments' && <AssignmentsPage canvas={canvas} done={done} toggle={toggle} />}
       {hash === '#/projects' && <ProjectsPage items={items} act={act} />}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { courseCode, dueDay, dueLabel, urgencyClass, weekBucket } from './lib.js';
+import { courseCode, dueDay, dueLabel, urgencyClass, weekBucket, weekDays, nextUp, projectsByActivity } from './lib.js';
 
 // Monday 28 Sep 2026, 3 PM local.
 const NOW = new Date(2026, 8, 28, 15, 0);
@@ -59,5 +59,51 @@ describe('weekBucket', () => {
 
   it('puts a Monday-midnight deadline in the week it ends', () => {
     expect(weekBucket(at(28 + 7), NOW)).toBe('This week');
+  });
+});
+
+describe('weekDays', () => {
+  it('returns Monday to Sunday of this week, or a later week', () => {
+    expect(weekDays(0, NOW).map((d) => d.getDate())).toEqual([28, 29, 30, 1, 2, 3, 4]);
+    expect(weekDays(1, NOW)[0].getDate()).toBe(5);
+  });
+
+  it('starts on Monday even when today is Sunday', () => {
+    expect(weekDays(0, new Date(2026, 9, 4, 12))[0].getDate()).toBe(28);
+  });
+});
+
+describe('nextUp', () => {
+  const d = (id, day, h = 12) => ({ id, title: id, due: at(day, h) });
+
+  it('picks the soonest deadline that is not done', () => {
+    const list = [d('a', 29), d('b', 30), d('c', 31)];
+    expect(nextUp(list, new Set(['a']))?.id).toBe('b');
+  });
+
+  it('returns null when everything is done', () => {
+    expect(nextUp([d('a', 29)], new Set(['a']))).toBeNull();
+  });
+});
+
+describe('projectsByActivity', () => {
+  const item = (title, group, updated) => ({
+    title, group, sessions: updated ? [{ id: title, updated }] : [],
+  });
+
+  it('leaves out classes and orders by latest session, then name', () => {
+    const items = [
+      item('Zeta', 'Projects', null),
+      item('CS465', 'Classes', at(28, 14)),
+      item('Old', 'Projects', at(20)),
+      item('Lab', 'Class Projects', at(28, 10)),
+      item('Alpha', 'Projects', null),
+    ];
+    expect(projectsByActivity(items).map((i) => i.title)).toEqual(['Lab', 'Old', 'Alpha', 'Zeta']);
+  });
+
+  it('puts finished projects last', () => {
+    const items = [{ ...item('Done', 'Projects', at(28)), status: 'done' }, item('Live', 'Projects', null)];
+    expect(projectsByActivity(items).map((i) => i.title)).toEqual(['Live', 'Done']);
   });
 });

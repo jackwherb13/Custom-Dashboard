@@ -6,9 +6,10 @@ const PATHS = {
   chevron: <path d="m9 6 6 6-6 6" />,
 };
 
-export function Icon({ name, size = 16 }) {
+export function Icon({ name, size = 16, flip = false }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      style={flip ? { transform: 'scaleX(-1)' } : undefined}
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {PATHS[name]}
     </svg>

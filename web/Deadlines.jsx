@@ -21,11 +21,15 @@ export function DueList({ deadlines, done, toggle }) {
     <ul className="due-list">
       {list.map((d) => (
         <li key={d.id} className={done.has(d.id) ? 'done' : urgencyClass(d.due)}>
-          <label>
-            <input type="checkbox" checked={done.has(d.id)} onChange={() => toggle(d.id)} />
-            <span className="due-title">{d.title}</span>
-          </label>
-          <span className="due-course" title={d.course ?? undefined}>{courseCode(d.course)}</span>
+          <span className="due-main">
+            <input type="checkbox" checked={done.has(d.id)} onChange={() => toggle(d.id)} aria-label={`Mark ${d.title} done`} />
+            {d.url
+              ? <a className="due-title" href={d.url} target="_blank" rel="noreferrer">{d.title}</a>
+              : <span className="due-title">{d.title}</span>}
+          </span>
+          {d.courseUrl
+            ? <a className="due-course" href={d.courseUrl} target="_blank" rel="noreferrer" title={`Open ${d.course} in Canvas`}>{courseCode(d.course)}</a>
+            : <span className="due-course" title={d.course ?? undefined}>{courseCode(d.course)}</span>}
           <span className="due-when">{dueLabel(d.due)}</span>
           {d.url
             ? <a href={d.url} target="_blank" rel="noreferrer" className="quiet" title="Open in Canvas"><Icon name="external" size={14} /></a>

@@ -57,8 +57,14 @@ export default function WeekCard({ deadlines, done }) {
             <div key={x.id} className={`week-item ${done.has(x.id) ? 'done' : ''}`}>
               <i />
               <div>
-                <strong>{x.title}</strong>
-                <span>{courseCode(x.course)}, {dueLabel(x.due)}</span>
+                {x.url
+                  ? <a href={x.url} target="_blank" rel="noreferrer"><strong>{x.title}</strong></a>
+                  : <strong>{x.title}</strong>}
+                <span>
+                  {x.courseUrl
+                    ? <a href={x.courseUrl} target="_blank" rel="noreferrer">{courseCode(x.course)}</a>
+                    : courseCode(x.course)}, {dueLabel(x.due)}
+                </span>
               </div>
             </div>
           ))}

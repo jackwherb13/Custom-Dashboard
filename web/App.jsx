@@ -180,7 +180,7 @@ export default function App() {
 
       {hash === '#/' && <Overview items={items} canvas={canvas} done={done} toggle={toggle} act={act} />}
       {hash === '#/assignments' && <AssignmentsPage canvas={canvas} done={done} toggle={toggle} />}
-      {hash === '#/projects' && <ProjectsPage items={items} act={act} />}
+      {hash === '#/projects' && <ProjectsPage items={items} act={act} deadlines={canvas.deadlines} />}
 
       {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role="status">{toast.text}</div>}
     </div>

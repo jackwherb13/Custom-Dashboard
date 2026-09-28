@@ -9,21 +9,34 @@ const ics = (...events) => [
 ].join('\r\n');
 
 describe('parseIcs', () => {
-  it('parses Canvas assignment events', () => {
+  it('parses Canvas assignment events with direct assignment and course links', () => {
     const [e] = parseIcs(ics([
       'UID:event-assignment-123',
       'SUMMARY:Lab 1 [CS475-001 Fall 2026]',
       'DTSTART:20260927T035900Z',
-      'URL;VALUE=URI:https://canvas.example.edu/calendar#assignment_123',
+      // Canvas links to the calendar and ends the line with a space.
+      'URL;VALUE=URI:https://canvas.example.edu/calendar?include_contexts=course_86095&month=09&year=2026#assignment_123 ',
     ]));
     expect(e).toEqual({
       id: 'event-assignment-123',
       title: 'Lab 1',
       course: 'CS475-001 Fall 2026',
       due: '2026-09-27T03:59:00.000Z',
-      url: 'https://canvas.example.edu/calendar#assignment_123',
+      url: 'https://canvas.example.edu/courses/86095/assignments/123',
+      courseUrl: 'https://canvas.example.edu/courses/86095',
       kind: 'assignment',
     });
+  });
+
+  it('keeps the calendar link when there is no course to link to', () => {
+    const [e] = parseIcs(ics([
+      'UID:event-calendar-event-5',
+      'SUMMARY:Office hours',
+      'DTSTART:20261010T140000Z',
+      'URL;VALUE=URI:https://canvas.example.edu/calendar?include_contexts=user_9#calendar_event_5',
+    ]));
+    expect(e.url).toBe('https://canvas.example.edu/calendar?include_contexts=user_9#calendar_event_5');
+    expect(e.courseUrl).toBeNull();
   });
 
   it('unfolds continuation lines and unescapes text', () => {

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Icon } from './icons.jsx';
 import { SessionList } from './Sessions.jsx';
-import { groupOrder, timeAgo } from './lib.js';
+import { courseCode, groupOrder, timeAgo } from './lib.js';
 
-function ItemRow({ item, act }) {
+function ItemRow({ item, act, canvasUrl }) {
   const [open, setOpen] = useState(false);
   const n = item.sessions.length;
   return (
@@ -20,6 +20,7 @@ function ItemRow({ item, act }) {
         {item.path && <button className="accent" onClick={() => act({ action: 'new', itemId: item.id }, `Starting Claude in ${item.title}`)}>New session</button>}
         {item.path && <button onClick={() => act({ action: 'folder', itemId: item.id }, `Opening ${item.title} folder`)}>Folder</button>}
         {item.ssh && <button onClick={() => act({ action: 'ssh', itemId: item.id }, 'Connecting to zeus')}>Zeus</button>}
+        {canvasUrl && <a href={canvasUrl} target="_blank" rel="noreferrer">Canvas</a>}
         {item.links.map((link, i) => (link.url
           ? <a key={i} href={link.url} target="_blank" rel="noreferrer">{link.label}</a>
           : <button key={i} onClick={() => act({ action: 'file', itemId: item.id, linkIndex: i }, `Opening ${link.label}`)}>{link.label}</button>))}
@@ -29,8 +30,10 @@ function ItemRow({ item, act }) {
   );
 }
 
-export function ProjectsPage({ items, act }) {
+export function ProjectsPage({ items, act, deadlines }) {
   const groups = Map.groupBy(items, (i) => i.group);
+  // Course pages come from the Canvas feed, so a class shows its link while it has something due.
+  const courseUrls = new Map(deadlines.filter((d) => d.courseUrl).map((d) => [courseCode(d.course), d.courseUrl]));
   return (
     <>
       <header className="page-head"><h1>Classes and projects</h1></header>
@@ -44,7 +47,7 @@ export function ProjectsPage({ items, act }) {
             <ul className="items">
               {groups.get(g)
                 .sort((a, b) => (a.status === 'done') - (b.status === 'done') || a.title.localeCompare(b.title))
-                .map((item) => <ItemRow key={item.id} item={item} act={act} />)}
+                .map((item) => <ItemRow key={item.id} item={item} act={act} canvasUrl={courseUrls.get(courseCode(item.title))} />)}
             </ul>
           </section>
         ))}

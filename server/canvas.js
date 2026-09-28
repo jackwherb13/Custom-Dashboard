@@ -15,6 +15,15 @@ function parseDate(value) {
   return isNaN(date) ? null : date.toISOString();
 }
 
+// Canvas links every item to its calendar page; build the course and assignment pages instead.
+function canvasLinks(url, uid) {
+  const m = url?.match(/^(https?:\/\/[^/]+)\/calendar\?.*include_contexts=course_(\d+)/);
+  if (!m) return { url: url ?? null, courseUrl: null };
+  const courseUrl = `${m[1]}/courses/${m[2]}`;
+  const assignment = uid?.match(/^event-assignment-(\d+)$/);
+  return { url: assignment ? `${courseUrl}/assignments/${assignment[1]}` : url, courseUrl };
+}
+
 export function parseIcs(text) {
   // RFC 5545: a line starting with a space or tab continues the previous line.
   const lines = text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
@@ -29,7 +38,7 @@ export function parseIcs(text) {
       const colon = line.indexOf(':');
       if (colon < 0) continue;
       const name = line.slice(0, colon).split(';')[0];
-      const value = line.slice(colon + 1);
+      const value = line.slice(colon + 1).trim();
       if (name === 'UID') cur.uid = value;
       else if (name === 'SUMMARY') cur.summary = unescape(value);
       else if (name === 'URL') cur.url = value;
@@ -44,7 +53,7 @@ export function parseIcs(text) {
       title: m ? m[1] : e.summary ?? '(untitled)',
       course: m ? m[2] : null,
       due: e.due,
-      url: e.url ?? null,
+      ...canvasLinks(e.url, e.uid),
       kind: e.uid?.includes('assignment') ? 'assignment' : 'event',
     };
   });
